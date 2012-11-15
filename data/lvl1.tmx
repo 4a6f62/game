@@ -7,7 +7,7 @@
   <image source="lvl_rocks/lvl_rocks.png" trans="ffffff" width="192" height="192"/>
  </tileset>
  <tileset firstgid="37" name="metatiles32x32" tilewidth="32" tileheight="32">
-  <image source="meta/metatiles32x32.png" trans="ffffff" width="192" height="32"/>
+  <image source="meta/metatiles32x32.png" trans="ffffff" width="224" height="32"/>
   <tile id="0">
    <properties>
     <property name="type" value="solid"/>

@@ -149,17 +149,27 @@ var PlayerEntity = me.ObjectEntity.extend({
         // check & update player movement
         updated = this.updateMovement();
 		
-		if(this.falling && (updated.xprop.isSolid == true || updated.xprop.isBreakable == true))
+		if(this.falling && updated.xprop.isSolid == true)
 		{
 			if ((me.input.keyStatus('left') && this.wallJump == 1) || (me.input.keyStatus('right') && this.wallJump == 2) || this.wallJump == 0)
 			{
-				this.vel.y /= 2;
-				this.setCurrentAnimation("hang");
+				if(this.vel.y > 0)
+				{
+					this.vel.y /= 2;
+					this.setCurrentAnimation("hang");
+				}
 			}
-			
+					
 			if(me.input.keyStatus("jump"))
 			{
-				
+				if(updated.x > 0 && me.input.keyStatus("right") && (this.wallJump == 0 || this.wallJump == 2))
+				{
+					this.vel.x = -this.maxVel.x;
+					this.wallJump = 1;
+					this.vel.y = -this.maxVel.y;
+					// set the jumping flag
+					this.jumping = true;
+				}
 				
 				if(updated.x < 0 && me.input.keyStatus("left") && (this.wallJump == 0 || this.wallJump == 1))
 				{
@@ -170,16 +180,11 @@ var PlayerEntity = me.ObjectEntity.extend({
 					// set the jumping flag
 					this.jumping = true;
 				}
-				
-				if(updated.x > 0 && me.input.keyStatus("right") && (this.wallJump == 0 || this.wallJump == 2))
-				{
-					this.vel.x = -this.maxVel.x;
-					this.wallJump = 1;
-					this.vel.y = -this.maxVel.y;
-					// set the jumping flag
-					this.jumping = true;
-				}
 			}
+		}
+		else if(updated.yprop.isCollidable && updated.y < 0)
+		{
+			this.wallJump = 0;
 		}
 				
 

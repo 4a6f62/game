@@ -184,9 +184,12 @@ var PlayerEntity = me.ObjectEntity.extend({
 		}
 		else if(updated.yprop.isCollidable && updated.y < 0)
 		{
-			this.wallJump = 0;
+			this.wallJump = 3;
 		}
-				
+		else if(updated.yprop.isCollidable && updated.y > 0)
+		{
+			this.wallJump = 0;
+		}				
 
         if (this.pos.y > me.game.currentLevel.realheight + 32) {
             this.die();

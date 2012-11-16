@@ -67,15 +67,18 @@
  </objectgroup>
  <objectgroup color="#ff0000" name="EnemyEntities" width="160" height="15">
   <object name="eskimo" x="160" y="416" width="384" height="32"/>
-  <object name="eskimo" x="992" y="320" width="96" height="32"/>
+  <object name="penguin" x="992" y="320" width="96" height="32"/>
   <object name="eskimo" x="1088" y="224" width="96" height="32"/>
   <object name="eskimo" x="1632" y="128" width="96" height="32"/>
-  <object name="eskimo" x="1728" y="128" width="128" height="32"/>
   <object name="eskimo" x="1856" y="128" width="96" height="32"/>
-  <object name="eskimo" x="1952" y="416" width="352" height="32"/>
+  <object name="eskimo" x="1952" y="416" width="160" height="32"/>
   <object name="eskimo" x="2624" y="416" width="64" height="32"/>
-  <object name="eskimo" x="2848" y="416" width="288" height="32"/>
+  <object name="eskimo" x="2848" y="416" width="128" height="32"/>
   <object name="eskimo" x="3808" y="416" width="96" height="32"/>
+  <object name="penguin" x="1728" y="128" width="128" height="32"/>
+  <object name="penguin" x="2432" y="416" width="64" height="32"/>
+  <object name="penguin" x="2976" y="416" width="128" height="32"/>
+  <object name="penguin" x="2144" y="416" width="128" height="32"/>
  </objectgroup>
  <objectgroup color="#ffff7f" name="coins" width="160" height="15">
   <object name="coinEntity" x="192" y="288" width="32" height="32">

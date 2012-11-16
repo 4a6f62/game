@@ -279,6 +279,7 @@ var CoinEntity = me.CollectableEntity.extend({
 
 var generalEnemy = me.ObjectEntity.extend({
 	init: function(x, y, settings) {
+		monsters += 1;
 	 	// call the parent constructor
 	 	this.score = settings.score;
         this.parent(x, y, settings);
@@ -318,6 +319,7 @@ var generalEnemy = me.ObjectEntity.extend({
 		this.setCurrentAnimation("die","dead");
 		me.game.HUD.updateItemValue("score", this.score);
 		levelScore += this.score;
+		kills += 1;
     },
 	
 	dead: function()
@@ -494,6 +496,13 @@ var Zombie3 = ZombieEntity.extend({
 var Eskimo = ZombieEntity.extend({
 	init: function(x, y, settings) {
 		settings.image = "eskimo";
+		this.parent(x, y, settings);		
+	}
+});
+
+var Penguin = ZombieEntity.extend({
+	init: function(x, y, settings) {
+		settings.image = "penguin";
 		this.parent(x, y, settings);		
 	}
 });
@@ -1084,15 +1093,16 @@ var EndPoint = me.LevelEntity.extend({
     // extending the init function is not mandatory
     // unless you need to add some extra initialization
     init: function(x, y, settings) {
-		lastLvl = currentLvl;
-		currentLvl = settings.nextlevel;
+		this.goTo = settings.nextlevel;
         this.parent(x, y, settings);
         this.collidable = true;
 		//this.width = 32;
     },
     onCollision: function(a, b) {
 		this.collidable = false;
-		me.state.change(me.state.PLAY, currentLvl);
+		lastLvl = currentLvl;
+		currentLvl = this.goTo;
+		me.state.change(me.state.PLAY, this.goTo );
     },
 	update: function()
 	{

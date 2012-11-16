@@ -135,19 +135,19 @@ var PlayScreen = me.ScreenObject.extend({
         // make sure everyhting is in the right order
         me.game.sort();
 
-		if(currentLvl == 'level_1')
+		if(currentLvl == 'level_1' || currentLvl == 'level_2' || currentLvl == 'level_3' || currentLvl == 'level_4')
 		{
-			me.audio.playTrack('deadshoulddance', true);
+			me.audio.playTrack('deadshoulddance');
 		}
 		
 		if(currentLvl == 'boss_1')
 		{
-			me.audio.playTrack('twolead', true);
+			me.audio.playTrack('twolead');
 		}
 		
 		if(currentLvl == 'level2_1')
 		{
-			me.audio.playTrack('hello', true);
+			me.audio.playTrack('hello');
 		}
 		
 		levelScore = 0;

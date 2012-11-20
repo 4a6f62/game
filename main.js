@@ -28,7 +28,7 @@ var jsApp	=
 	{
 		
 		// init the video
-		if (!me.video.init('jsapp', 640, 480))
+		if (!me.video.init('jsapp', 640, 480, true, 1))
 		{
 			alert("Sorry but your browser does not support html 5 canvas.");
          return;
@@ -36,6 +36,9 @@ var jsApp	=
 				
 		// initialize the "audio"
 		me.audio.init("mp3,ogg");
+	
+		me.sys.fps = 30;
+
 		
 		// set all resources to be loaded
 		me.loader.onload = this.loaded.bind(this);
@@ -85,7 +88,8 @@ var jsApp	=
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.UP,    "jump", true);
         me.input.bindKey(me.input.KEY.DOWN,  "duck", true);
-		me.input.bindKey(me.input.KEY.Z,  "jump");
+		me.input.bindKey(me.input.KEY.Z,  "jump", true);
+		me.input.bindKey(me.input.KEY.X,  "fire", true);
 		me.input.bindKey(me.input.KEY.ENTER,  "enter", true);
 
         // start the game

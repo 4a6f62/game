@@ -41,9 +41,19 @@ var PlayerEntity = me.ObjectEntity.extend({
 
         this.addAnimation ("jump",  [5]);
 
-        this.addAnimation ("fall",  [4,5]);
+        this.addAnimation ("fall",  [4]);
 		
 		this.addAnimation ("hang",  [6]);
+		
+		this.addAnimation ("punch_1",  [7]);
+		
+		this.addAnimation ("punch_2",  [8]);
+		
+		this.addAnimation ("punch_3",  [9]);
+		
+		this.addAnimation ("punch_4",  [10, 11]);
+		
+		this.addAnimation ("dash",  [7]);
 
         // set default one
         this.setCurrentAnimation("stand");
@@ -54,6 +64,8 @@ var PlayerEntity = me.ObjectEntity.extend({
 		this.ToD = 0;
 		this.lastHit = 0;
 		this.wallJump = 0;
+		this.punching = false;
+		this.dashing = false;
 		
 		this.tag = new me.Font("Verdana", 14, "white");
         this.tag.bold();
@@ -70,7 +82,7 @@ var PlayerEntity = me.ObjectEntity.extend({
 		{
 			return false;
 		}
-        if (me.input.isKeyPressed('left')) {
+        if (me.input.isKeyPressed('left') && !this.dashing) {
             // flip the sprite on horizontal axis
             this.flipX(true);
 			this.facing = 0;
@@ -78,7 +90,7 @@ var PlayerEntity = me.ObjectEntity.extend({
 			if(this.vel.x > -5)
             this.vel.x -= this.accel.x * me.timer.tick;
 	   
-        } else if (me.input.isKeyPressed('right')) {
+        } else if (me.input.isKeyPressed('right') && !this.dashing) {
             // unflip the sprite
             this.flipX(false);
 			this.facing = 1;
@@ -99,35 +111,51 @@ var PlayerEntity = me.ObjectEntity.extend({
             }
         }
 		
-		if(me.input.isKeyPressed('fire'))
+		
+		if(!this.dashing)
 		{
-			//me.state.change(me.state.READY)
+			if (this.vel.x===0 && this.vel.y===0)
+			{
+				this.dashing = false;
+				this.setCurrentAnimation("stand");
+			}
+			if(this.vel.y===0 && this.vel.x!==0)
+			{
+				this.setCurrentAnimation("walk");
+			}
+			if(this.jumping)
+			{
+				this.setCurrentAnimation("jump");
+			}
+			if(this.falling)
+			{
+				this.setCurrentAnimation("fall");
+			}
 		}
-
-        if (this.vel.x===0 && this.vel.y===0)
-        {
-            this.setCurrentAnimation("stand");
-        }
-        if(this.vel.y===0 && this.vel.x!==0)
-        {
-            this.setCurrentAnimation("walk");
-        }
-        if(this.jumping)
-        {
-            this.setCurrentAnimation("jump");
-        }
-        if(this.falling)
-        {
-            this.setCurrentAnimation("fall");
-        }
+		else if (this.vel.x===0 && !this.punching)
+		{
+			this.dashing = false;
+		}
+		
+		
+		if(me.input.isKeyPressed('fire') && !this.dashing && !this.jumping && !this.falling)
+		{
+			this.dash();
+		}
 		
 		var res = me.game.collide(this);
  
 		if (res) {
 			// if we collide with an enemy
 			if (res.obj.type == me.game.ENEMY_OBJECT) {
-				// check if we jumped on it
-				if (me.input.keyStatus("jump"))
+				if(this.dashing) // check if we are dashing
+				{
+					if(!this.punching)
+					{
+						this.punch(res.obj);
+					}
+				}				
+				else if (me.input.keyStatus("jump")) // check if we jumped on it
 				{
 					this.vel.y = -this.maxVel.y * me.timer.tick;
 					// set the jumping flag
@@ -244,8 +272,69 @@ var PlayerEntity = me.ObjectEntity.extend({
 	unDie: function()
 	{
 		this.alive = true;
+	},
+	
+	dash: function()
+	{
+		this.setCurrentAnimation("dash");
+		if(this.facing == 0)
+		{
+			this.vel.x = -(this.maxVel.x * me.timer.tick);
+		}
+		else
+		{
+			this.vel.x = (this.maxVel.x * me.timer.tick);
+		}
+		
+		this.dashing = true;
+	},
+	
+	punch: function(enemy)
+	{
+		this.punching = true;
+		this.vel.x = 0;
+		enemy.sleep = 100;
+		var flip = false;
+		if(enemy.pos.x < this.pos.x)
+		{
+			this.pos.x = enemy.pos.x + 20;
+		}
+		else
+		{
+			flip = true;
+			this.pos.x = enemy.pos.x - 20;
+		}
+		
+		enemy.flipX(flip);
+					
+		this.setCurrentAnimation("punch_1", function(){
+			enemy.setCurrentAnimation("stand");
+			enemy.flipX(!flip);
+			
+			this.setCurrentAnimation("punch_3", function(){
+				enemy.flipX(flip);				
+								
+				this.setCurrentAnimation("punch_2", function(){
+					enemy.flipX(!flip);
+					
+					if(flip)
+					{
+						enemy.vel.x = (this.maxVel.y * me.timer.tick) * 0.3;
+					}
+					else
+					{
+						enemy.vel.x = -(this.maxVel.y * me.timer.tick) * 0.3;
+					}
+					
+					this.setCurrentAnimation("punch_3", function(){
+						this.punching = false;
+						this.dashing = false;
+						enemy.die();
+					});					
+				});
+			});
+		});
 	}
-
 });
 
 /*----------------
@@ -298,7 +387,7 @@ var generalEnemy = me.ObjectEntity.extend({
     {
 		now = me.timer.getTime() - lastHit;
 		
-		if(now > 1000)
+		if(now > 2000)
 		{
 			combo = 0;
 		}
@@ -339,14 +428,14 @@ var generalEnemy = me.ObjectEntity.extend({
 	
 	onCollision: function(res, obj)
 	{		
-		if(obj.name != 'mainplayer')
+		if(obj.name != 'mainplayer' || obj.dashing || obj.punching)
 		{
 			return;
 		}
 		
 		var dif = this.pos.y - obj.pos.y;
 		
-        if (this.alive && (dif > 0 || res.y > 0))
+        if (this.alive && (dif > 0 || res.y > 0) )
 		{
             this.die();
         }
@@ -379,6 +468,7 @@ var ZombieEntity = generalEnemy.extend({
         this.addAnimation ("walk", [0,1,2,3]);
         this.addAnimation ("die",  [4,5,6]);
 		this.addAnimation ("dead", [7]);
+		this.addAnimation ("hit", [8]);
 		
 		this.startX = x;
         this.endX = x + settings.width - settings.spritewidth;
@@ -387,7 +477,9 @@ var ZombieEntity = generalEnemy.extend({
 		this.setTransparency('#ffffff');
 		
 		 // walking & jumping speed
-        this.setVelocity(1, 1);
+        this.setVelocity(1.5, 12);
+        this.setMaxVelocity(12, 12);
+		this.setFriction(0.5,0);
 		
 		this.pos.x = x + settings.width - settings.spritewidth;
 		this.walkLeft = true;
@@ -418,38 +510,30 @@ var ZombieEntity = generalEnemy.extend({
         if (!this.visible)
             return false;
  
-        if (this.alive && this.sleep === 0) {			
+        if (this.alive && this.sleep === 0)
+		{
+			
+			if((this.endX - this.startX) >= 32)
+			{
+				this.vel.x = (this.walkLeft) ? -this.accel.x * me.timer.tick : this.accel.x * me.timer.tick;
+				this.flipX(this.walkLeft);
+			}
+			
             if (this.walkLeft && this.pos.x <= this.startX) {
                 this.walkLeft = false;
 				this.sleep = 60 * me.timer.tick;
+				this.setCurrentAnimation("stand");
+				this.vel.x = 0;
             } else if (!this.walkLeft && this.pos.x >= this.endX) {
                 this.walkLeft = true;
 				this.sleep = 60 * me.timer.tick;
-            }
-            // make it walk
-            
-			if((this.endX - this.startX) >= 32)
-			{
-				this.vel.x += (this.walkLeft) ? -this.accel.x * me.timer.tick : this.accel.x * me.timer.tick;
-			}
-			else
-			{
-				this.flipX(this.walkLeft);
-			}
-						
-			if(this.vel.x === 0)
-			{
 				this.setCurrentAnimation("stand");
-			}
+				this.vel.x = 0;
+            }
 			else
 			{
-				this.flipX(this.walkLeft);
 				this.setCurrentAnimation("walk");
-			}
-                 
-        } else {
-            this.vel.x = 0;
-			
+			}                
         }
 		
 		if(this.sleep !== 0)
@@ -697,7 +781,7 @@ var Chainsaw = generalEnemy.extend({
     // extending the init function is not mandatory
     // unless you need to add some extra initialization
     init: function(x, y, settings) {
-		this.score = 150;
+
        	settings.image = 'chainsaw';			
 		settings.spritewidth = 56;
 		settings.spriteheight = 56;
@@ -753,6 +837,7 @@ var Chainsaw = generalEnemy.extend({
 		
 		this.hitpoints = 3;
 		this.score = 500;
+		this.sleep = 0;
     },
 		
 	// manage the enemy movement
@@ -772,231 +857,240 @@ var Chainsaw = generalEnemy.extend({
 		if(!this.flickering && !this.collidable)
 		{
 			this.collidable = true;
-		}				
-		
-		if(this.state != 'search' && this.state != 'swing')
-		{
-			if (this.vel.x===0 && this.vel.y===0 && this.state != 'wait')
-			{
-				this.setCurrentAnimation("stand");
-			}
-			if(this.vel.y===0 && this.vel.x!==0)
-			{
-				this.setCurrentAnimation("walk");
-			}
-			if(this.jumping)
-			{
-				this.setCurrentAnimation("jump");
-			}
-			if(this.falling)
-			{
-				this.setCurrentAnimation("jump");
-			}
 		}
-		
-		if(this.state != 'swing' && this.state != 'search' && this.distanceTo(this.target) < 48)
+
+		if(this.sleep > 0)
 		{
-			this.state = 'swing';
-			this.ToT = me.timer.getTime() + 1000;
+			this.sleep -= 1;
 		}
-		else if(this.state == 'swing' && this.ToT > me.timer.getTime())
+		else
 		{
-			this.setCurrentAnimation("swing");
-			if(this.distanceTo(this.target) < 48 && !this.isFlickering())
+			if(this.state != 'search' && this.state != 'swing')
 			{
-				this.target.die();
-				this.respawn();
+				if (this.vel.x===0 && this.vel.y===0 && this.state != 'wait')
+				{
+					this.setCurrentAnimation("stand");
+				}
+				if(this.vel.y===0 && this.vel.x!==0)
+				{
+					this.setCurrentAnimation("walk");
+				}
+				if(this.jumping)
+				{
+					this.setCurrentAnimation("jump");
+				}
+				if(this.falling)
+				{
+					this.setCurrentAnimation("jump");
+				}
 			}
-		}
-		else if(this.state == 'swing' && this.ToT < me.timer.getTime())
-		{
-			this.state = 'follow';
-			this.ToT = me.timer.getTime() + 10;
-		}			
-		else if(this.ToT < me.timer.getTime() && this.state == 'roam')
-		{
-			this.state = 'search'
-			this.setCurrentAnimation("search");
 			
-			this.ToT = me.timer.getTime() + 800;
-		}
-		else if(this.ToT < me.timer.getTime() && this.state == 'search')
-		{
-			this.state = 'follow';
-			this.ToT = me.timer.getTime() + 200;
-		}
-		else if(this.state == 'follow' && this.ToT < me.timer.getTime())
-		{
-			if(this.lastX == this.pos.x)
+			if(this.state != 'swing' && this.state != 'search' && this.distanceTo(this.target) < 48)
 			{
-				this.state = 'roam';
+				this.state = 'swing';
 				this.ToT = me.timer.getTime() + 1000;
-			}	
-		
-			if((this.target.pos.x + 16) < this.pos.x)
-			{
-				this.flipX(true);
-				this.facing = 0;
-				// update the entity velocity
-				this.vel.x -= this.accel.x * me.timer.tick;
 			}
-			else if((this.target.pos.x - 16) > this.pos.x)
+			else if(this.state == 'swing' && this.ToT > me.timer.getTime())
 			{
-				this.flipX(false);
-				this.facing = 1;
-				// update the entity velocity
-				this.vel.x += this.accel.x * me.timer.tick;
-			}
-			
-			if(this.target.pos.y <= this.pos.y)
-			{
-				if(this.pos.y > 384)
+				this.setCurrentAnimation("swing");
+				if(this.distanceTo(this.target) < 48 && !this.isFlickering())
 				{
-					this.state = 'goTo';
-					
-					if(this.target.pos.x < 320)
-					{
-						this.goTo = 132;
-					}
-					else
-					{
-						this.goTo = 464;
-					}
+					this.target.die();
+					this.respawn();
 				}
 			}
-		}
-		else if(this.state == 'roam')
-		{
-			if(this.facing == 1)
+			else if(this.state == 'swing' && this.ToT < me.timer.getTime())
 			{
-				this.flipX(false);
+				this.state = 'follow';
+				this.ToT = me.timer.getTime() + 10;
+			}			
+			else if(this.ToT < me.timer.getTime() && this.state == 'roam')
+			{
+				this.state = 'search'
+				this.setCurrentAnimation("search");
 				
-				// update the entity velocity
-				this.vel.x += this.accel.x * me.timer.tick;
+				this.ToT = me.timer.getTime() + 800;
 			}
-			else
+			else if(this.ToT < me.timer.getTime() && this.state == 'search')
 			{
-				this.flipX(true);
-				// update the entity velocity
-				this.vel.x -= this.accel.x * me.timer.tick;
+				this.state = 'follow';
+				this.ToT = me.timer.getTime() + 200;
 			}
-						
-			if(updated.x)
+			else if(this.state == 'follow' && this.ToT < me.timer.getTime())
 			{
-				if(updated.x < 0 && this.facing == 1 && updated.yprop.type == 'solid')
+				if(this.lastX == this.pos.x)
 				{
-					this.facing = 0;
-				}
-				else if(updated.x > 0 && this.facing == 0 && updated.yprop.type == 'solid')
-				{
-					this.facing = 1;
-				}
-			}
-		}
-		else if(this.state == 'goTo')
-		{
-			if(Math.random() * 1001 < 5)
-			{
-				this.state = 'roam';
-			}
-			if(this.goTo + 8 < this.pos.x)
-			{
-				this.flipX(true);
-				this.facing = 0;
-				// update the entity velocity
-				this.vel.x -= this.accel.x * me.timer.tick;
-			}
-			else if(this.goTo - 8 > this.pos.x)
-			{
-				this.flipX(false);
-				this.facing = 1;
-				// update the entity velocity
-				this.vel.x += this.accel.x * me.timer.tick;
-			}
+					this.state = 'roam';
+					this.ToT = me.timer.getTime() + 1000;
+				}	
 			
-			if(this.goTo + 16 > this.pos.x && this.goTo - 16 < this.pos.x)
-			{
-				this.ToT = me.timer.getTime() + 400;
-				this.state = 'jumping';
-				if(this.pos.x < 300)
+				if((this.target.pos.x + 16) < this.pos.x)
 				{
+					this.flipX(true);
+					this.facing = 0;
+					// update the entity velocity
+					this.vel.x -= this.accel.x * me.timer.tick;
+				}
+				else if((this.target.pos.x - 16) > this.pos.x)
+				{
+					this.flipX(false);
 					this.facing = 1;
+					// update the entity velocity
+					this.vel.x += this.accel.x * me.timer.tick;
+				}
+				
+				if(this.target.pos.y <= this.pos.y)
+				{
+					console.log(this.pos.y);
+					if(this.pos.y > 360)
+					{
+						this.state = 'goTo';
+						
+						if(this.target.pos.x < 320)
+						{
+							this.goTo = 132;
+						}
+						else
+						{
+							this.goTo = 469;
+						}
+					}
+				}
+			}
+			else if(this.state == 'roam')
+			{
+				if(this.facing == 1)
+				{
+					this.flipX(false);
+					
+					// update the entity velocity
+					this.vel.x += this.accel.x * me.timer.tick;
 				}
 				else
 				{
-					this.facing = 0;
+					this.flipX(true);
+					// update the entity velocity
+					this.vel.x -= this.accel.x * me.timer.tick;
 				}
-				if(this.jump())
+							
+				if(updated.x)
 				{
-				
-					this.setCurrentAnimation("stand");
+					if(updated.x < 0 && this.facing == 1 && updated.yprop.type == 'solid')
+					{
+						this.facing = 0;
+					}
+					else if(updated.x > 0 && this.facing == 0 && updated.yprop.type == 'solid')
+					{
+						this.facing = 1;
+					}
 				}
 			}
-		}
-		else if(this.state == 'jumping' && !this.jumping && !this.falling)
-		{			
-			if(this.target.pos.y < this.pos.y)
+			else if(this.state == 'goTo')
 			{
-				if(this.pos.y < 120)
+				if(Math.random() * 1001 < 5)
+				{
+					this.state = 'roam';
+				}
+				if(this.goTo + 8 < this.pos.x)
+				{
+					this.flipX(true);
+					this.facing = 0;
+					// update the entity velocity
+					this.vel.x -= this.accel.x * me.timer.tick;
+				}
+				else if(this.goTo - 8 > this.pos.x)
+				{
+					this.flipX(false);
+					this.facing = 1;
+					// update the entity velocity
+					this.vel.x += this.accel.x * me.timer.tick;
+				}
+				
+				if(this.goTo + 16 > this.pos.x && this.goTo - 16 < this.pos.x)
+				{
+					this.ToT = me.timer.getTime() + 400;
+					this.state = 'jumping';
+					if(this.pos.x < 300)
+					{
+						this.facing = 1;
+					}
+					else
+					{
+						this.facing = 0;
+					}
+					if(this.jump())
+					{
+					
+						this.setCurrentAnimation("stand");
+					}
+				}
+			}
+			else if(this.state == 'jumping' && !this.jumping && !this.falling)
+			{			
+				if(this.target.pos.y < this.pos.y)
+				{
+					console.log(this.pos.y);
+					if(this.pos.y < 120)
+					{
+						this.state = 'follow';
+						if(this.pos.x < 320)
+						{
+							this.facing = 0;
+						}
+						else
+						{
+							this.facing = 1;
+						}
+						this.ToT = me.timer.getTime() + 100;
+					}				
+					else if(this.pos.y < 256)
+					{
+						if(this.pos.x < 320)
+						{
+							this.facing = 0;
+						}
+						else
+						{
+							this.facing = 1;
+						}
+						
+						this.jump();
+					}
+					else if(this.pos.y < 320)
+					{					
+						if(this.pos.x < 320)
+						{
+							this.facing = 1;
+						}
+						else
+						{
+							this.facing = 0;
+						}
+						
+						this.jump();
+					}
+				}
+				else
 				{
 					this.state = 'follow';
-					if(this.pos.x < 320)
-					{
-						this.facing = 0;
-					}
-					else
-					{
-						this.facing = 1;
-					}
-					this.ToT = me.timer.getTime() + 100;
-				}				
-				else if(this.pos.y < 256)
+					this.ToT = me.timer.getTime() + 50;
+				}
+			}
+			else if(this.state == 'jumping')
+			{
+				if(this.facing == 1)
 				{
-					if(this.pos.x < 320)
-					{
-						this.facing = 0;
-					}
-					else
-					{
-						this.facing = 1;
-					}
+					this.flipX(false);
 					
-					this.jump();
+					// update the entity velocity
+					this.vel.x += this.accel.x * me.timer.tick;
 				}
-				else if(this.pos.y < 320)
-				{					
-					if(this.pos.x < 320)
-					{
-						this.facing = 1;
-					}
-					else
-					{
-						this.facing = 0;
-					}
-					
-					this.jump();
+				else
+				{
+					this.flipX(true);
+					// update the entity velocity
+					this.vel.x -= this.accel.x * me.timer.tick;
 				}
-			}
-			else
-			{
-				this.state = 'follow';
-				this.ToT = me.timer.getTime() + 50;
-			}
-		}
-		else if(this.state == 'jumping')
-		{
-			if(this.facing == 1)
-			{
-				this.flipX(false);
-				
-				// update the entity velocity
-				this.vel.x += this.accel.x * me.timer.tick;
-			}
-			else
-			{
-				this.flipX(true);
-				// update the entity velocity
-				this.vel.x -= this.accel.x * me.timer.tick;
 			}
 		}
 		
@@ -1054,19 +1148,9 @@ var Chainsaw = generalEnemy.extend({
 	{		
 		if (this.alive && a.y > 0 && this.state == 'search')
 		{
-			this.collidable = false;
-			this.state = 'swing';
-			if(!this.isFlickering())
-			{
-				this.hitpoints -= 1;
-				this.flicker(45);
-				if(this.hitpoints <= 0)
-				{
-					this.die();
-				}
-			}
+			this.die();
 		}
-		else
+		else if(!b.dashing)
 		{
 			b.die();
 			this.respawn();
@@ -1080,6 +1164,28 @@ var Chainsaw = generalEnemy.extend({
 		
 		me.state.change(me.state.READY);
 	},
+	
+	die: function()
+    {
+		if(this.hitpoints <= 0 && this.alive)
+		{
+			this.alive = false;
+			this.collidable = false;
+			this.ToD = me.timer.getTime();
+			me.audio.play('hit');
+			this.setCurrentAnimation("die","dead");
+			me.game.HUD.updateItemValue("score", this.score);
+			levelScore += this.score;
+			kills += 1;
+		}
+		else
+		{
+			this.hitpoints -= 1;
+			this.flicker(45);
+			this.collidable = false;
+			this.state = 'swing';
+		}
+    },
 	
 	respawn: function()
 	{

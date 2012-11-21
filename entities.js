@@ -62,6 +62,7 @@ var PlayerEntity = me.ObjectEntity.extend({
         this.collidable = true;
 		
 		this.ToD = 0;
+		this.ToT = 0;
 		this.lastHit = 0;
 		this.wallJump = 0;
 		this.punching = false;
@@ -70,9 +71,11 @@ var PlayerEntity = me.ObjectEntity.extend({
 		this.tag = new me.Font("Verdana", 14, "black");
 				
 		this.text = new Array();
-		this.text[0] = "XXXXXXX";
-		this.text[1] = "XXXXXXX";
-		this.text[2] = "XXXXXXX";
+		this.text[0] = "Lorem ipsum dolor sit amet,";
+		this.text[1] = "consectetur adipiscing elit.";
+		
+		this.ToT = me.timer.getTime() + 3000;
+		this.talking = true;
 		
 		this.balloon = me.loader.getImage("balloon");
     },
@@ -344,11 +347,13 @@ var PlayerEntity = me.ObjectEntity.extend({
 	
 	draw : function(context) {
         this.parent(context);
-		if(this.talking)
+		now = (me.timer.getTime() - this.ToT);
+		if(this.talking && now < 3000)
 		{
-			now = (me.timer.getTime() - this.ToD);
-			max_width = 0;
+			
+			max_width = 50;
 			max_height = this.text.length * 16;
+					
 			for (i=0;i<this.text.length;i++)
 			{
 				index = this.text.length - i - 1;
@@ -357,10 +362,12 @@ var PlayerEntity = me.ObjectEntity.extend({
 				if(font_width > max_width * 2) max_width = font_width;
 			}
 			
+			balloon_x = this.pos.x - me.game.viewport.pos.x - (max_width / 2);
+			balloon_y = this.pos.y - me.game.viewport.pos.y - max_height;
 			context.fillStyle = "white";
 			context.strokeStyle = "black";
-			context.fillRect(this.pos.x - me.game.viewport.pos.x - (max_width / 2) + 10, this.pos.y - 34 -  me.game.viewport.pos.y - (max_height / 2) - 4, max_width + 10, max_height + 4);
-			context.strokeRect(this.pos.x - me.game.viewport.pos.x - (max_width / 2) + 9, this.pos.y - 33 -  me.game.viewport.pos.y - (max_height / 2) - 5, max_width + 12, max_height + 5);
+			context.fillRect(balloon_x - 8, balloon_y - 24, max_width + 48, max_height + 14);
+			context.strokeRect(balloon_x - 9, balloon_y - 24, max_width + 49, max_height + 15);
 			
 			context.drawImage(this.balloon, this.pos.x - me.game.viewport.pos.x - 8, this.pos.y - 12 - me.game.viewport.pos.y);
 			
@@ -369,9 +376,13 @@ var PlayerEntity = me.ObjectEntity.extend({
 				index = this.text.length - i - 1;
 				font_width = this.tag.measureText(context, this.text[index]).width / 2;
 							
-				this.tag.draw(context, this.text[index] ,this.pos.x - me.game.viewport.pos.x - font_width + 16, this.pos.y - 28 -  me.game.viewport.pos.y - (i * 16));
+				this.tag.draw(context, this.text[index] ,this.pos.x - me.game.viewport.pos.x - font_width + 16, this.pos.y - 32 -  me.game.viewport.pos.y - (i * 16));
 			}
-		}		
+		}
+		else
+		{
+			this.talking = false;
+		}
     },
 });
 

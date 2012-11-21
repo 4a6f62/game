@@ -16,7 +16,6 @@ var lastHit = 0;
 var kills = 0;
 var deaths = 0;
 var monsters = 0;
-
 var jsApp	= 
 {	
 	/* ---

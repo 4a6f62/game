@@ -67,8 +67,14 @@ var PlayerEntity = me.ObjectEntity.extend({
 		this.punching = false;
 		this.dashing = false;
 		
-		this.tag = new me.Font("Verdana", 14, "white");
-        this.tag.bold();
+		this.tag = new me.Font("Verdana", 14, "black");
+				
+		this.text = new Array();
+		this.text[0] = "XXXXXXX";
+		this.text[1] = "XXXXXXX";
+		this.text[2] = "XXXXXXX";
+		
+		this.balloon = me.loader.getImage("balloon");
     },
 
     /* -----
@@ -334,7 +340,39 @@ var PlayerEntity = me.ObjectEntity.extend({
 				});
 			});
 		});
-	}
+	},
+	
+	draw : function(context) {
+        this.parent(context);
+		if(this.talking)
+		{
+			now = (me.timer.getTime() - this.ToD);
+			max_width = 0;
+			max_height = this.text.length * 16;
+			for (i=0;i<this.text.length;i++)
+			{
+				index = this.text.length - i - 1;
+				font_width = this.tag.measureText(context, this.text[index]).width;
+				
+				if(font_width > max_width * 2) max_width = font_width;
+			}
+			
+			context.fillStyle = "white";
+			context.strokeStyle = "black";
+			context.fillRect(this.pos.x - me.game.viewport.pos.x - (max_width / 2) + 10, this.pos.y - 34 -  me.game.viewport.pos.y - (max_height / 2) - 4, max_width + 10, max_height + 4);
+			context.strokeRect(this.pos.x - me.game.viewport.pos.x - (max_width / 2) + 9, this.pos.y - 33 -  me.game.viewport.pos.y - (max_height / 2) - 5, max_width + 12, max_height + 5);
+			
+			context.drawImage(this.balloon, this.pos.x - me.game.viewport.pos.x - 8, this.pos.y - 12 - me.game.viewport.pos.y);
+			
+			for (i=0;i<this.text.length;i++)
+			{
+				index = this.text.length - i - 1;
+				font_width = this.tag.measureText(context, this.text[index]).width / 2;
+							
+				this.tag.draw(context, this.text[index] ,this.pos.x - me.game.viewport.pos.x - font_width + 16, this.pos.y - 28 -  me.game.viewport.pos.y - (i * 16));
+			}
+		}		
+    },
 });
 
 /*----------------
@@ -372,6 +410,8 @@ var generalEnemy = me.ObjectEntity.extend({
 	 	// call the parent constructor
 	 	this.score = settings.score;
         this.parent(x, y, settings);
+		
+		this.tag = new me.Font("Verdana", 14, "white");
 	},
 	 
 	draw : function(context) {
@@ -494,9 +534,6 @@ var ZombieEntity = generalEnemy.extend({
 		
 		this.ToD = 0;
 		this.sleep = 0;
-		
-		this.tag = new me.Font("Verdana", 14, "white");
-        this.tag.bold();
     },
 	
 	// manage the enemy movement
@@ -716,9 +753,6 @@ var BarrelZombie = generalEnemy.extend({
 		this.wait = 1;
 		this.ToT = 0;
 		this.ToD = 0;
-		
-		this.tag = new me.Font("Verdana", 14, "white");
-        this.tag.bold();
     },
 		
 	// manage the enemy movement
@@ -828,10 +862,7 @@ var Chainsaw = generalEnemy.extend({
 		this.ToD = 0;
 		
 		this.state = 'follow';
-		
-		this.tag = new me.Font("Verdana", 14, "white");
-        this.tag.bold();
-		
+				
 		this.target = me.game.getEntityByName("mainPlayer")[0];
 		this.goTo = 0;
 		

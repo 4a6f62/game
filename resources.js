@@ -20,6 +20,11 @@ var g_resources = [{
     src: "data/meta/atascii_40px.png"
 },
 {
+    name: "balloon",
+    type: "image",
+    src: "data/meta/balloon.png"
+},
+{
     name: "atascii_16px",
     type: "image",
     src: "data/meta/atascii_16px.png"
